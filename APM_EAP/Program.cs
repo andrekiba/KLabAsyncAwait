@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Linq;
 using System.Net;
+using System.Threading.Tasks;
 
 namespace APM_EAP
 {
@@ -35,7 +36,7 @@ namespace APM_EAP
             object obj = "ciao!";
             Dns.BeginGetHostAddresses("www.elfo.net", OnHostNameResolved, obj);
         }
-        private static  void OnHostNameResolved(IAsyncResult ar)
+        private static void OnHostNameResolved(IAsyncResult ar)
         {
             object obj = ar.AsyncState;
             Dns.EndGetHostAddresses(ar).ToList().ForEach(Console.WriteLine);
@@ -64,6 +65,53 @@ namespace APM_EAP
                 var result = x.Result;
                 result.ToList().ForEach(Console.WriteLine);
             });
+        }
+
+        private static async void LookupHostName4()
+        {
+            var task = Dns.GetHostAddressesAsync("www.elfo.net");
+            var result = await task;
+            result.ToList().ForEach(Console.WriteLine);
+        }
+
+        //Wrap EAP
+
+        private static Task<string> DumpWebPageAsync(WebClient client, Uri uri)
+        {
+            var tcs = new TaskCompletionSource<string>();
+
+            DownloadStringCompletedEventHandler handler = null;
+
+            handler = (sender, args) =>
+            {
+                client.DownloadStringCompleted -= handler;
+                
+                if (args.Cancelled)
+                    tcs.TrySetCanceled();
+                else if (args.Error != null)
+                    tcs.TrySetException(args.Error);
+                else
+                    tcs.TrySetResult(args.Result);
+            };
+
+            client.DownloadStringCompleted += handler;
+            client.DownloadStringAsync(uri);
+
+            return tcs.Task;
+        }
+
+        //wrap APM
+
+        private static Task<IPAddress[]> LookupHostNameAsync(string hostName)
+        {
+            //si utilizza uno degli overload di TaskFactory.FromAsync
+
+            //come prima parametro si passa il metodo Begin
+            //come secondo si passa il metodo End
+            //si passano in ordine tutti i parametri che verrebbero passati al metodo begin
+            //si passa null come state obejct
+            return Task<IPAddress[]>.Factory.FromAsync(Dns.BeginGetHostAddresses, Dns.EndGetHostAddresses, hostName, null);
+
         }
     }
 }
