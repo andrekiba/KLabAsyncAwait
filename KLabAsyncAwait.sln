@@ -5,7 +5,9 @@ VisualStudioVersion = 14.0.24720.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "APM_EAP", "APM_EAP\APM_EAP.csproj", "{29218B24-8E05-42FC-AB85-0B94F299C347}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TaskCompletionSource", "TaskCompletionSource\TaskCompletionSource.csproj", "{87C82CCB-2D81-4A76-83AB-96D9A3A41162}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AsyncAwait", "TaskCompletionSource\AsyncAwait.csproj", "{87C82CCB-2D81-4A76-83AB-96D9A3A41162}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AsyncOOP", "AsyncOOP\AsyncOOP.csproj", "{DB1BE372-4EB1-4F82-B7C0-C47A43F54A78}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -21,6 +23,10 @@ Global
 		{87C82CCB-2D81-4A76-83AB-96D9A3A41162}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{87C82CCB-2D81-4A76-83AB-96D9A3A41162}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{87C82CCB-2D81-4A76-83AB-96D9A3A41162}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DB1BE372-4EB1-4F82-B7C0-C47A43F54A78}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DB1BE372-4EB1-4F82-B7C0-C47A43F54A78}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DB1BE372-4EB1-4F82-B7C0-C47A43F54A78}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DB1BE372-4EB1-4F82-B7C0-C47A43F54A78}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
