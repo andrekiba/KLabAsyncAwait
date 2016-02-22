@@ -9,6 +9,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AsyncAwait", "TaskCompletio
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AsyncOOP", "AsyncOOP\AsyncOOP.csproj", "{DB1BE372-4EB1-4F82-B7C0-C47A43F54A78}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AsyncUnitTest", "AsyncUnitTest\AsyncUnitTest.csproj", "{768FB1E2-37F0-4C5A-AF87-3EA2577BADA6}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -27,6 +29,10 @@ Global
 		{DB1BE372-4EB1-4F82-B7C0-C47A43F54A78}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{DB1BE372-4EB1-4F82-B7C0-C47A43F54A78}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{DB1BE372-4EB1-4F82-B7C0-C47A43F54A78}.Release|Any CPU.Build.0 = Release|Any CPU
+		{768FB1E2-37F0-4C5A-AF87-3EA2577BADA6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{768FB1E2-37F0-4C5A-AF87-3EA2577BADA6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{768FB1E2-37F0-4C5A-AF87-3EA2577BADA6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{768FB1E2-37F0-4C5A-AF87-3EA2577BADA6}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

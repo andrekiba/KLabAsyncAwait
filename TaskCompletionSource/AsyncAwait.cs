@@ -25,7 +25,12 @@ namespace AsyncAwait
             //Console.WriteLine(ip);
 
             await DoSomethingAsync();
-            await TrySomethingAsync();
+            //await TrySomethingAsync();
+
+            var result = DoSomethingAsync().Result;
+
+            //qui non ci arriva mai --> deadlock
+            Console.WriteLine(result);
         }
 
         #region Wrap EAP
@@ -73,7 +78,7 @@ namespace AsyncAwait
 
         #region Something Async
 
-        static async Task DoSomethingAsync()
+        static async Task<int> DoSomethingAsync()
         {
             int val = 6;
             // Asynchronously wait 1 second.
@@ -81,7 +86,7 @@ namespace AsyncAwait
             val += 10;
             // Asynchronously wait 1 second.
             await Task.Delay(TimeSpan.FromSeconds(1));
-            Trace.WriteLine(val);
+            return val;
         }
 
         #endregion
@@ -90,11 +95,11 @@ namespace AsyncAwait
 
         static async Task TrySomethingAsync()
         {
-            // The exception will end up on the Task, not thrown directly.
+            // Il metodo inizia e l'eccezione viene salvata nel task
             Task task = ThrowExceptionAsync();
             try
             {
-                // The Task's exception will be raised here, at the await.
+                // l'eccezione viene sollevata qui quando si attende il task
                 await task;
             }
             catch (NotSupportedException ex)
@@ -109,6 +114,11 @@ namespace AsyncAwait
             await Task.Delay(TimeSpan.FromSeconds(2));
             throw new NotImplementedException();
         }
+
+        #endregion
+
+        #region Deadlock
+
 
         #endregion
     }
