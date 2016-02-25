@@ -24,13 +24,12 @@ namespace AsyncAwait
             //var ip = await LookupHostNameAsync("www.elfo.net");
             //Console.WriteLine(ip);
 
-            await DoSomethingAsync();
+            //await DoSomethingAsync();
             //await TrySomethingAsync();
 
-            var result = DoSomethingAsync().Result;
+            //Deadlock();
 
-            //qui non ci arriva mai --> deadlock
-            Console.WriteLine(result);
+            await ReportProgressAsync();
         }
 
         #region Wrap EAP
@@ -78,14 +77,19 @@ namespace AsyncAwait
 
         #region Something Async
 
-        static async Task<int> DoSomethingAsync()
+        static async Task<int> DoSomethingAsync(IProgress<int> progress = null)
         {
             int val = 6;
             // Asynchronously wait 1 second.
             await Task.Delay(TimeSpan.FromSeconds(1));
             val += 10;
-            // Asynchronously wait 1 second.
+            progress?.Report(val);
             await Task.Delay(TimeSpan.FromSeconds(1));
+            val += 10;
+            progress?.Report(val);
+            await Task.Delay(TimeSpan.FromSeconds(1));
+            val += 10;
+            progress?.Report(val);
             return val;
         }
 
@@ -119,6 +123,35 @@ namespace AsyncAwait
 
         #region Deadlock
 
+        static void Deadlock()
+        {
+            //richiedere Result significa bloccare in modo sincorono in attesa del risultato
+            //se SynchronizationContext ammette un singolo thread succede che il Main thread rimane bloccato in attesa
+            //e non può essere richiamato quando l'await ritorna 
+            var result = DoSomethingAsync().Result;
+
+            //qui non ci arriva mai --> deadlock
+            Console.WriteLine(result);
+        }
+
+        #endregion
+
+        #region Report Progress
+
+        static async Task ReportProgressAsync()
+        {
+            //attenzione che il report può avvenire in asincrono quindi è meglio utilizzare un value type o un tipo immutabile
+            //come parametro T per evitare che il valore venga modificato dalla continuazione del metodo in asincrono  
+            var progress = new Progress<int>();
+            progress.ProgressChanged += (sender, i) =>
+            {
+                //N.B.: la callback cattura il contesto, sappiamo che quando viene costrutita in questo caso il contesto è quello
+                //del Main thread quindi è possibile aggiornare l'interfaccia senza icorrere in problemi
+                Console.WriteLine(i);
+            };
+
+            await DoSomethingAsync(progress);
+        }
 
         #endregion
     }
