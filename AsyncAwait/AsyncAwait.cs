@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
 using System.Net;
+using System.Threading;
 using System.Threading.Tasks;
 using Nito.AsyncEx;
 
@@ -27,9 +28,18 @@ namespace AsyncAwait
             //await DoSomethingAsync();
             //await TrySomethingAsync();
 
-            //Deadlock();
+            //Deadlock
+            Deadlock();
 
-            await ReportProgressAsync();
+            //Report Progress
+            //await ReportProgressAsync();
+
+            //ConfigureAwait
+            //Console.WriteLine(SynchronizationContext.Current != null ? SynchronizationContext.Current.ToString() : "null");
+            //await DoSomethingAsync();
+            //Console.WriteLine(SynchronizationContext.Current != null ? SynchronizationContext.Current.ToString() : "null");
+            //await DoSomethingAsync().ConfigureAwait(false);
+            //Console.WriteLine(SynchronizationContext.Current != null ? SynchronizationContext.Current.ToString() : "null");
         }
 
         #region Wrap EAP
