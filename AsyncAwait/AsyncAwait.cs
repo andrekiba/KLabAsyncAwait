@@ -1,12 +1,17 @@
 ﻿using System;
 using System.Diagnostics;
+using System.Linq;
 using System.Net;
+using System.Threading;
 using System.Threading.Tasks;
+using System.Windows.Threading;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Nito.AsyncEx;
 
 namespace AsyncAwait
 {
-    class AsyncAwait
+    [TestClass]
+    public class AsyncAwait
     {
         static void Main(string[] args)
         {
@@ -44,6 +49,13 @@ namespace AsyncAwait
 
         #region Wrap EAP
 
+        [TestMethod]
+        public async Task TestDumpWebPageAsync()
+        {
+            var dump = await DumpWebPageAsync(new WebClient(), new Uri("http://www.elfo.net"));
+            Console.WriteLine(dump);
+        }
+
         private static Task<string> DumpWebPageAsync(WebClient client, Uri uri)
         {
             var tcs = new TaskCompletionSource<string>();
@@ -72,6 +84,13 @@ namespace AsyncAwait
 
         #region Wrap APM
 
+        [TestMethod]
+        public async Task TestLookupHostNameAsync()
+        {
+            var ip = await LookupHostNameAsync("www.elfo.net");
+            Console.WriteLine(ip);
+        }
+
         private static Task<IPAddress[]> LookupHostNameAsync(string hostName)
         {
             //si utilizza uno degli overload di TaskFactory.FromAsync
@@ -85,7 +104,54 @@ namespace AsyncAwait
 
         #endregion
 
-        #region Something Async
+        #region CPU-bound
+
+        [TestMethod]
+        public async Task CPUBound()
+        {
+            Parallel.For(0, 1000, CpuBoundMethod);
+            Parallel.ForEach(Enumerable.Range(1000, 2000), CpuBoundMethod);
+
+            await Task.Run(() => CpuBoundMethod(2001));
+            await Task.Factory.StartNew(() => CpuBoundMethod(2002));
+        }
+
+        static void CpuBoundMethod(int i)
+        {
+            Console.WriteLine(i);
+        }
+
+        #endregion
+
+        #region Sequential - Concurrent
+
+        [TestMethod]
+        public async Task Sequential()
+        {
+            var sequential = Enumerable.Range(0, 6).Select(t => Task.Delay(1500));
+
+            foreach (var task in sequential)
+            {
+                await task;
+            }
+        }
+
+        [TestMethod]
+        public async Task Concurrent()
+        {
+            var concurrent = Enumerable.Range(0, 6).Select(t => Task.Delay(1500));
+            await Task.WhenAll(concurrent);
+        }
+
+        #endregion
+
+        #region IO-bound
+
+        [TestMethod]
+        public async Task TestDoSomethingAsync()
+        {
+            await DoSomethingAsync();
+        }
 
         static async Task<int> DoSomethingAsync(IProgress<int> progress = null)
         {
@@ -106,6 +172,12 @@ namespace AsyncAwait
         #endregion
 
         #region Async Exception
+
+        [TestMethod]
+        public async Task TestTrySomethingAsync()
+        {
+            await TrySomethingAsync();
+        }
 
         static async Task TrySomethingAsync()
         {
@@ -130,7 +202,41 @@ namespace AsyncAwait
 
         #endregion
 
+        #region Async Void
+
+        [TestMethod]
+        public async Task AsyncVoid()
+        {
+            try
+            {
+                AvoidAsyncVoid();
+
+            }
+            catch (InvalidOperationException e)
+            {
+                Console.WriteLine(e);
+            }
+
+            await Task.Delay(TimeSpan.FromSeconds(1));
+        }
+
+        static async void AvoidAsyncVoid()
+        {
+            await Task.Delay(TimeSpan.FromSeconds(1));
+            throw new InvalidOperationException("Exception!");
+        }
+
+        #endregion
+
         #region Deadlock
+
+        [TestMethod]
+        public async Task TestDeadlock()
+        {
+            SynchronizationContext.SetSynchronizationContext(new DispatcherSynchronizationContext());
+
+            Deadlock();
+        }
 
         static void Deadlock()
         {
@@ -146,6 +252,12 @@ namespace AsyncAwait
         #endregion
 
         #region Report Progress
+
+        [TestMethod]
+        public async Task TestReportProgressAsync()
+        {
+            await ReportProgressAsync();
+        }
 
         static async Task ReportProgressAsync()
         {
