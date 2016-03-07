@@ -9,8 +9,8 @@ namespace AsyncOOP
     {
         static void Main(string[] args)
         {
-            Init();
-            //AsyncContext.Run(Init);
+            //Init();
+            AsyncContext.Run(Init);
 
             Console.WriteLine("End");
 
@@ -18,7 +18,7 @@ namespace AsyncOOP
         }
 
 
-        private static async void Init()
+        private static async Task Init()
         {
             //Async Init
             await AsyncClass1.CreateAsync();
@@ -50,8 +50,8 @@ namespace AsyncOOP
 
         public static Task<AsyncClass1> CreateAsync()
         {
-            var instance = new AsyncClass1();
-            return instance.InitializeAsync();
+            var result = new AsyncClass1();
+            return result.InitializeAsync();
         }
     }
 

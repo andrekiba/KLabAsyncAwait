@@ -25,9 +25,7 @@ namespace AsyncAwait
             //var ip = await LookupHostNameAsync("www.elfo.net");
             //Console.WriteLine(ip);
 
-            Task<int> t = DoSomethingAsync();
-            int result = await t;
- 
+            //await DoSomethingAsync();
             //await TrySomethingAsync();
 
             //Deadlock
@@ -118,9 +116,10 @@ namespace AsyncAwait
                 // l'eccezione viene sollevata qui quando si attende il task
                 await task;
             }
-            catch (NotImplementedException ex)
+            catch (NotSupportedException ex)
             {
                 Trace.WriteLine(ex);
+                throw;
             }
         }
 
@@ -136,7 +135,7 @@ namespace AsyncAwait
 
         static void Deadlock()
         {
-            //richiedere Result significa bloccare in modo sincorono il chiamante in attesa del risultato
+            //richiedere Result significa bloccare in modo sincorono in attesa del risultato
             //se SynchronizationContext ammette un singolo thread succede che il Main thread rimane bloccato in attesa
             //e non può essere richiamato quando l'await ritorna 
             var result = DoSomethingAsync().Result;
@@ -163,34 +162,6 @@ namespace AsyncAwait
 
             await DoSomethingAsync(progress);
         }
-
-        #endregion
-
-        #region Mapping
-   
-        /*
-            
-        Type                                    Lambda                                                  Parameters	    Return Value
-            
-        Action	                                () => { }	                                            None	        None
-        Func<Task>	                            async () => { await Task.Yield(); }	                    None	        None
-            
-        Func<TResult>	                        () => { return 6; }	                                    None	        TResult
-        Func<Task<TResult>>	                    async () => { await Task.Yield(); return 6; }	        None	        TResult
-            
-        Action<TArg1>	                        x => { }	                                            TArg1	        None
-        Func<TArg1, Task>	                    async x => { await Task.Yield(); }	                    TArg1	        None
-            
-        Func<TArg1, TResult>	                x => { return 6; }	                                    TArg1	        TResult
-        Func<TArg1, Task<TResult>>	            async x => { await Task.Yield(); return 6; }	        TArg1	        TResult
-            
-        Action<TArg1, TArg2>	                (x, y) => { }	                                        TArg1, TArg2	None
-        Func<TArg1, TArg2, Task>	            async (x, y) => { await Task.Yield(); }	                TArg1, TArg2	None
-            
-        Func<TArg1, TArg2, TResult>	            (x, y) => { return 6; }	                                TArg1, TArg2	TResult
-        Func<TArg1, TArg2, Task<TResult>>	    async (x, y) => { await Task.Yield(); return 6; }	    TArg1, TArg2	TResult
-
-        */     
 
         #endregion
     }
