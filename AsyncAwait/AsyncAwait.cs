@@ -135,9 +135,10 @@ namespace AsyncAwait
 
         static void Deadlock()
         {
-            //richiedere Result significa bloccare in modo sincorono in attesa del risultato
-            //se SynchronizationContext ammette un singolo thread succede che il Main thread rimane bloccato in attesa
-            //e non può essere richiamato quando l'await ritorna 
+            //richiedere Result significa bloccare in modo sincorono il thread chiamante in attesa del risultato
+            //se SynchronizationContext ammette un singolo thread questo rimane bloccato in attesa
+            //e non può essere richiamato quando l'await ritorna
+            //lo UI thread e ASP.Net Request Context thread presentano questo problema
             var result = DoSomethingAsync().Result;
 
             //qui non ci arriva mai --> deadlock
