@@ -18,15 +18,14 @@ namespace AsyncAwait
 
         static async Task MainAsync(string[] args)
         {
+            
             //var dump = await DumpWebPageAsync(new WebClient(), new Uri("http://www.elfo.net"));
             //Console.WriteLine(dump);
 
             //var ip = await LookupHostNameAsync("www.elfo.net");
             //Console.WriteLine(ip);
 
-            Task<int> t = DoSomethingAsync();
-            int result = await t;
- 
+            //await DoSomethingAsync();
             //await TrySomethingAsync();
 
             //Deadlock
