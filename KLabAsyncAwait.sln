@@ -9,7 +9,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AsyncAwait", "AsyncAwait\As
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AsyncOOP", "AsyncOOP\AsyncOOP.csproj", "{DB1BE372-4EB1-4F82-B7C0-C47A43F54A78}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AsyncTest", "AsyncUnitTest\AsyncTest.csproj", "{768FB1E2-37F0-4C5A-AF87-3EA2577BADA6}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AsyncTest", "AsyncTest\AsyncTest.csproj", "{768FB1E2-37F0-4C5A-AF87-3EA2577BADA6}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Utility", "Utility\Utility.csproj", "{FEABA09D-05B4-43CE-A512-513DA7448FA5}"
 EndProject
