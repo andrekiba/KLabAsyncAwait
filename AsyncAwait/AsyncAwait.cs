@@ -30,11 +30,11 @@ namespace AsyncAwait
             //var ip = await LookupHostNameAsync("www.elfo.net");
             //Console.WriteLine(ip);
 
-            //await DoSomethingAsync();
+            await DoSomethingAsync();
             //await TrySomethingAsync();
 
             //Deadlock
-            Deadlock();
+            //Deadlock();
 
             //Report Progress
             //await ReportProgressAsync();
@@ -109,11 +109,11 @@ namespace AsyncAwait
         [TestMethod]
         public async Task CPUBound()
         {
-            Parallel.For(0, 1000, CpuBoundMethod);
-            Parallel.ForEach(Enumerable.Range(1000, 2000), CpuBoundMethod);
+            Parallel.For(0, 100, CpuBoundMethod);
+            Parallel.ForEach(Enumerable.Range(100, 200), CpuBoundMethod);
 
-            await Task.Run(() => CpuBoundMethod(2001));
-            await Task.Factory.StartNew(() => CpuBoundMethod(2002));
+            await Task.Run(() => CpuBoundMethod(201));
+            await Task.Factory.StartNew(() => CpuBoundMethod(202));
         }
 
         static void CpuBoundMethod(int i)
@@ -148,15 +148,47 @@ namespace AsyncAwait
         #region IO-bound
 
         [TestMethod]
-        public async Task TestDoSomethingAsync()
+        public void TestDoSomethingAsync()
         {
-            await DoSomethingAsync();
+            AsyncContext.Run(async () =>
+            {
+                Assert.IsNotNull(SynchronizationContext.Current);
+
+                Task<int> t = DoSomethingAsync();
+
+                Console.WriteLine("Thread " + Thread.CurrentThread.ManagedThreadId + " libero di fare altro nel frattempo!");
+
+                int result = await t;
+
+                Console.WriteLine("Thread " + Thread.CurrentThread.ManagedThreadId + result);
+            }); 
         }
 
-        static async Task<int> DoSomethingAsync(IProgress<int> progress = null)
+        static async Task<int> DoSomethingAsync()
+        {
+            Console.WriteLine("Start DoSomethingAsync: " + Thread.CurrentThread.ManagedThreadId);
+
+            int val = 6;
+            
+            await Task.Delay(TimeSpan.FromSeconds(1));
+            Console.WriteLine("DoSomethingAsync incremento val: " + Thread.CurrentThread.ManagedThreadId);
+            val += 10;
+            
+            await Task.Delay(TimeSpan.FromSeconds(1));
+            Console.WriteLine("DoSomethingAsync incremento val: " + Thread.CurrentThread.ManagedThreadId);
+            val += 10;
+            
+            await Task.Delay(TimeSpan.FromSeconds(1));
+            Console.WriteLine("DoSomethingAsync incremento val: " + Thread.CurrentThread.ManagedThreadId);
+            val += 10;
+           
+            Console.WriteLine("End DoSomethingAsync: " + Thread.CurrentThread.ManagedThreadId);
+            return val;
+        }
+
+        static async Task<int> DoSomethingWithProgressAsync(IProgress<int> progress = null)
         {
             int val = 6;
-            // Asynchronously wait 1 second.
             await Task.Delay(TimeSpan.FromSeconds(1));
             val += 10;
             progress?.Report(val);
@@ -271,7 +303,7 @@ namespace AsyncAwait
                 Console.WriteLine(i);
             };
 
-            await DoSomethingAsync(progress);
+            await DoSomethingWithProgressAsync(progress);
         }
 
         #endregion

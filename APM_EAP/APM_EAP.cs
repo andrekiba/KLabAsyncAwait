@@ -30,10 +30,10 @@ namespace APM_EAP
 
             //APM Asynchronous Programming Model (2 metodi Begin End)
             //LookupHostName1();
-            //LookupHostName2();
+            LookupHostName2();
             //LookupHostName3();
             //LookupHostName4();
-            await LookupHostName5();
+            //await LookupHostName5();
         }
 
         #region  EAP Event-based Asynchronous Pattern (metodo + evento)
