@@ -23,37 +23,33 @@ namespace AsyncAwait
 
         static async Task MainAsync(string[] args)
         {
-            await DoSomethingAsync();
-
             Task<int> t = DoSomethingAsync();
             Console.WriteLine("Thread " + Thread.CurrentThread.ManagedThreadId + " libero di fare altro nel frattempo!");
             int result = await t;
             Console.WriteLine("Thread " + Thread.CurrentThread.ManagedThreadId + " risultato finale: " + result);
-
-            //await TrySomethingAsync();
-
-            //Report Progress
-            //await ReportProgressAsync();
-
-            //Deadlock
-            //Deadlock();
-      
         }
 
         #region CPU-bound
 
         [TestMethod]
-        public async Task CPUBound()
+        public void TestCpuBound()
         {
-            Parallel.ForEach(Enumerable.Range(1, 100), CpuBoundMethod);
+            //Parallel.ForEach(Enumerable.Range(1, 100), CpuBoundMethod);
 
-            //await Task.Run(() => CpuBoundMethod(201));
-            //await Task.Factory.StartNew(() => CpuBoundMethod(202));
+            AsyncContext.Run(async () =>
+            {
+                Console.WriteLine("Thread " + Thread.CurrentThread.ManagedThreadId);
+
+                Parallel.ForEach(Enumerable.Range(1, 100), CpuBoundMethod);
+
+                await Task.Run(() => CpuBoundMethod(100));
+                await Task.Factory.StartNew(() => CpuBoundMethod(101));
+            });
         }
 
-        static void CpuBoundMethod(int i)
+        static void CpuBoundMethod(int n)
         {
-            Console.WriteLine(i);
+            Console.WriteLine("Thread " + Thread.CurrentThread.ManagedThreadId + " scrivo " + n);
         }
 
         #endregion
@@ -148,7 +144,7 @@ namespace AsyncAwait
         #region Async Void
 
         [TestMethod]
-        public async Task AsyncVoid()
+        public async Task TestAsyncVoid()
         {
             try
             {
@@ -216,7 +212,59 @@ namespace AsyncAwait
             }); 
         }
 
+        //WPF
+        private async void DownloadButton_Click(object sender, EventArgs e)
+        {
+            // Attende in modo asincrono UI thread non è bloccato
+            await DownloadFileAsync("file.txt");
 
+            // viene recuperato il contesto e quindi possiamo aggiornare direttamente la UI
+            //resultTextBox.Text = "File downloaded!";
+        }
+
+        private async Task DownloadFileAsync(string fileName)
+        {
+            
+            // utilizziamo HttpClient o simili per fare il download.
+            //var fileContent = await DownloadFileContentsAsync(fileName).ConfigureAwait(false);
+
+            // poichè abbiamo usato ConfigureAwait(false), qui non siamo più nel contesto della UI.
+            // Invece stiamo eseguendo su un thread del thread pool
+
+            // scrive il file su disco in asincrono
+            //await WriteToDiskAsync(fileName, fileContent).ConfigureAwait(false);
+
+            // la secondo ConfigureAwait non è necessaria ma è buona pratica metterla
+        }
+
+        #endregion
+
+        #region Composition
+
+        public async Task DoOperationsConcurrentlyAsync()
+        {
+            Task[] tasks = new Task[3];
+            tasks[0] = DoSomethingAsync();
+            tasks[1] = DoSomethingAsync();
+            tasks[2] = DoSomethingAsync();
+
+            // a questo punto tutti e 3 i task sono in running
+
+            // WhenAll reswtituisce un task che diventa completo quando tutti i task sottesi sono completi
+            await Task.WhenAll(tasks);
+        }
+
+        public async Task<int> GetFirstToRespondAsync()
+        {
+            // chiama due web service e vede chi risponde prima
+            Task<int>[] tasks = { DoSomethingAsync(), DoSomethingAsync() };
+
+            // attende il primo che risponde
+            Task<int> firstTask = await Task.WhenAny(tasks);
+
+            // Return the result.
+            return await firstTask;
+        }
 
         #endregion
 
@@ -263,6 +311,28 @@ namespace AsyncAwait
             progress?.Report(val);
             return val;
         }
+
+        #endregion
+
+        #region Guidelines
+
+        /*
+
+        Old                     New                                 Description
+        
+        task.Wait	            await task	                        Wait/await for a task to complete
+        
+        task.Result	            await task	                        Get the result of a completed task
+        
+        Task.WaitAny	        await Task.WhenAny	                Wait/await for one of a collection of tasks to complete
+        
+        Task.WaitAll	        await Task.WhenAll	                Wait/await for every one of a collection of tasks to complete
+        
+        Thread.Sleep	        await Task.Delay	                Wait/await for a period of time
+        
+        Task constructor	    Task.Run or TaskFactory.StartNew	Create a code-based task
+
+        */
 
         #endregion
 

@@ -10,7 +10,7 @@ namespace AsyncTest
     public class AsyncTest
     {
         [TestMethod]
-        public async Task ThePump()
+        public async Task MessageLoop()
         {
             var tokenSource = new CancellationTokenSource();
             tokenSource.CancelAfter(TimeSpan.FromSeconds(1));
@@ -37,7 +37,7 @@ namespace AsyncTest
 
         static Task HandleMessage()
         {
-            return Task.Delay(1000);
+            return Task.Delay(TimeSpan.FromSeconds(1));
         }
     }
 }
