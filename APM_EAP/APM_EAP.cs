@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Linq;
 using System.Net;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Nito.AsyncEx;
 
@@ -9,46 +10,47 @@ namespace APM_EAP
     class APM_EAP
     {
         static void Main(string[] args)
-        {
-            try
-            {
-                AsyncContext.Run(() => MainAsync(args));
-            }
-            catch (Exception ex)
-            {
-                Console.Error.WriteLine(ex);
-            }
-
+        { 
+            AsyncContext.Run(() => MainAsync(args));
+           
             Console.WriteLine("End");
             Console.ReadLine();
         }
 
-        static async Task MainAsync(string[] args)
+        static async void MainAsync(string[] args)
         {
             //EAP Event-based Asynchronous Pattern (metodo + evento)
             //DumpWebPage();
 
             //APM Asynchronous Programming Model (2 metodi Begin End)
             //LookupHostName1();
-            LookupHostName2();
+            //LookupHostName2();
+
+            //Aasync/Await
             //LookupHostName3();
-            //LookupHostName4();
-            //await LookupHostName5();
+            //await LookupHostName4();
+
+            var dump = await DumpWebPageAsync(new WebClient(), new Uri("http://www.elfo.net"));
+            Console.WriteLine(Regex.Match(dump, @"<title>(.*?)</title>"));
+
+            var ipArray = await LookupHostNameAsync("www.elfo.net");
+            Console.WriteLine(ipArray.First());
         }
 
         #region  EAP Event-based Asynchronous Pattern (metodo + evento)
 
         private static void DumpWebPage()
         {
-            Uri uri = new Uri("http://www.google.com");
-            WebClient webClient = new WebClient();
+            var uri = new Uri("http://www.elfo.net");
+            var webClient = new WebClient();
             webClient.DownloadStringCompleted += OnDownloadStringCompleted;
             webClient.DownloadStringAsync(uri);
         }
 
         private static void OnDownloadStringCompleted(object sender, DownloadStringCompletedEventArgs eventArgs)
         {
-            Console.WriteLine(eventArgs.Result);
+            var dump = eventArgs.Result;
+            Console.WriteLine(Regex.Match(dump, @"<title>(.*?)</title>"));
         }
 
         #endregion
@@ -57,12 +59,10 @@ namespace APM_EAP
 
         private static void LookupHostName1()
         {
-            object obj = "ciao!";
-            Dns.BeginGetHostAddresses("www.elfo.net", OnHostNameResolved, obj);
+            Dns.BeginGetHostAddresses("www.elfo.net", OnHostNameResolved, null);
         }
         private static void OnHostNameResolved(IAsyncResult ar)
         {
-            object obj = ar.AsyncState;
             Dns.EndGetHostAddresses(ar).ToList().ForEach(Console.WriteLine);
         }
 
@@ -80,18 +80,18 @@ namespace APM_EAP
 
         #endregion
 
-        static void LookupHostName3()
+        #region AsyncAwait
+
+        static async void LookupHostName3()
         {
             Console.WriteLine("LookupHostName3");
+            await Task.Delay(TimeSpan.FromSeconds(2));
             var task = Dns.GetHostAddressesAsync("www.elfo.net");
-            task.ContinueWith(x =>
-            {
-                var result = x.Result;
-                result.ToList().ForEach(Console.WriteLine);
-            });
+            var result = await task;
+            result.ToList().ForEach(Console.WriteLine);
         }
 
-        static async void LookupHostName4()
+        static async Task LookupHostName4()
         {
             Console.WriteLine("LookupHostName4");
             await Task.Delay(TimeSpan.FromSeconds(2));
@@ -100,13 +100,49 @@ namespace APM_EAP
             result.ToList().ForEach(Console.WriteLine);
         }
 
-        static async Task LookupHostName5()
+        #endregion
+
+        #region Wrap EAP
+
+        private static Task<string> DumpWebPageAsync(WebClient client, Uri uri)
         {
-            Console.WriteLine("LookupHostName5");
-            await Task.Delay(TimeSpan.FromSeconds(2));
-            var task = Dns.GetHostAddressesAsync("www.elfo.net");
-            var result = await task;
-            result.ToList().ForEach(Console.WriteLine);
+            var tcs = new TaskCompletionSource<string>();
+
+            DownloadStringCompletedEventHandler handler = null;
+
+            handler = (sender, args) =>
+            {
+                client.DownloadStringCompleted -= handler;
+
+                if (args.Cancelled)
+                    tcs.TrySetCanceled();
+                else if (args.Error != null)
+                    tcs.TrySetException(args.Error);
+                else
+                    tcs.TrySetResult(args.Result);
+            };
+
+            client.DownloadStringCompleted += handler;
+            client.DownloadStringAsync(uri);
+
+            return tcs.Task;
         }
+
+        #endregion
+
+        #region Wrap APM
+
+        private static Task<IPAddress[]> LookupHostNameAsync(string hostName)
+        {
+            //si utilizza uno degli overload di TaskFactory.FromAsync
+
+            //come primo parametro si passa il metodo Begin
+            //come secondo si passa il metodo End
+            //si passano in ordine tutti i parametri che verrebbero passati al metodo begin
+            //si passa null come state obejct
+            return Task<IPAddress[]>.Factory.FromAsync(Dns.BeginGetHostAddresses, Dns.EndGetHostAddresses, hostName, null);
+        }
+
+        #endregion
     }
 }
