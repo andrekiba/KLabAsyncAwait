@@ -23,7 +23,7 @@ namespace APM_EAP
             DumpWebPage();
 
             //APM Asynchronous Programming Model (2 metodi Begin End)
-            //LookupHostName1();
+            LookupHostName1();
 
             //Aasync/Await
             //await LookupHostName3();
