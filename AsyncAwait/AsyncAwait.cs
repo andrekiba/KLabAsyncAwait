@@ -5,6 +5,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Windows.Threading;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Nito.AsyncEx;
 
@@ -13,6 +14,8 @@ namespace AsyncAwait
     [TestClass]
     public class AsyncAwait
     {
+        #region Console
+
         static void Main(string[] args)
         {
             AsyncContext.Run(() => MainAsync(args));
@@ -29,59 +32,14 @@ namespace AsyncAwait
             Console.WriteLine("Thread " + Thread.CurrentThread.ManagedThreadId + " risultato finale: " + result);
         }
 
-        #region CPU-bound
-
-        [TestMethod]
-        public async Task TestCpuBound()
-        {
-            //esegue il metodo in parallelo su più thread
-            Parallel.ForEach(Enumerable.Range(1, 100), CpuBoundMethod);
-
-            //è corretto utilizzare Task.Run solo per operazioni CPU-bound poichè utilizza un thread
-            await Task.Run(() => CpuBoundMethod(100));
-            await Task.Factory.StartNew(() => CpuBoundMethod(101));
-
-            //var result = Enumerable.Range(1, 10000).AsParallel().Select(x => x.ToString());
-            //result.ToList().ForEach(Console.WriteLine);
-        }
-
-        static void CpuBoundMethod(int n)
-        {
-            Console.WriteLine("Thread " + Thread.CurrentThread.ManagedThreadId + " scrivo " + n);
-        }
-
-        #endregion
-
-        #region Sequential - Concurrent
-
-        [TestMethod]
-        public async Task Sequential()
-        {
-            var sequential = Enumerable.Range(1, 4).Select(t => Task.Delay(TimeSpan.FromSeconds(1)));
-
-            foreach (var task in sequential)
-            {
-                await task;
-            }
-        }
-
-        [TestMethod]
-        public async Task Concurrent()
-        {
-            var concurrent = Enumerable.Range(1, 4).Select(t => Task.Delay(TimeSpan.FromSeconds(1)));
-            await Task.WhenAll(concurrent);
-            //await Task.WhenAny(concurrent);
-        }
-
         #endregion
 
         #region IO-bound
 
         [TestMethod]
-        public void TestDoSomethingAsync()
+        public async Task TestDoSomethingAsync()
         {
-            //SynchronizationContext.SetSynchronizationContext(new DispatcherSynchronizationContext());
-            //Console.WriteLine(SynchronizationContext.Current != null ? SynchronizationContext.Current.ToString() : "null");
+            //SynchronizationContext.SetSynchronizationContext(new SynchronizationContext());
 
             AsyncContext.Run(async () =>
             {
@@ -97,11 +55,11 @@ namespace AsyncAwait
 
         static async Task<int> DoSomethingAsync()
         {
-            Console.WriteLine("Thread " + Thread.CurrentThread.ManagedThreadId + " start DoSomethingAsync" );
+            Console.WriteLine("Thread " + Thread.CurrentThread.ManagedThreadId + " start DoSomethingAsync");
 
-            int result = 6;
+            int result = 32;
 
-            await Task.Delay(TimeSpan.FromSeconds(4));
+            await Task.Delay(TimeSpan.FromSeconds(2));
             Console.WriteLine("Thread " + Thread.CurrentThread.ManagedThreadId + " incremento risultato di 10");
             result += 10;
 
@@ -109,28 +67,24 @@ namespace AsyncAwait
             return result;
         }
 
-        [TestMethod]
-        public async Task TestIoBound()
-        {
-            Console.WriteLine("Thread " + Thread.CurrentThread.ManagedThreadId + " start IoBoundMethod");
-
-            await IoBoundMethod();
-
-            Console.WriteLine("Thread " + Thread.CurrentThread.ManagedThreadId + " end IoBoundMethod");
-        }
-
-        static async Task IoBoundMethod()
-        {
-            using (var stream = new FileStream(".\\IoBound.txt", FileMode.OpenOrCreate))
-            using (var writer = new StreamWriter(stream))
-            {
-                await writer.WriteLineAsync("Scrivo 6 in asincrono!");
-                writer.Close();
-                stream.Close();
-            }
-        }
-
         #endregion
+
+        #region CPU-bound
+
+        [TestMethod]
+        public async Task TestCpuBound()
+        {
+            Console.WriteLine("Thread " + Thread.CurrentThread.ManagedThreadId + " inizio operazione pesante");
+            //è corretto utilizzare Task.Run solo per operazioni CPU-bound poichè utilizza un thread
+            await Task.Run(() => CpuBoundMethod(100));       
+        }
+
+        static void CpuBoundMethod(int n)
+        {
+            Console.WriteLine("Thread " + Thread.CurrentThread.ManagedThreadId + " scrivo " + n);
+        }
+
+        #endregion         
 
         #region Async Exception
 
@@ -166,7 +120,7 @@ namespace AsyncAwait
         #region Async Void
 
         [TestMethod]
-        public async Task TestAsyncVoid()
+        public void TestAsyncVoid()
         {
             try
             {
@@ -191,6 +145,20 @@ namespace AsyncAwait
 
         #endregion
 
+        #region Wait Task Sync
+
+        [TestMethod]
+        public void TestWaitSync()
+        {
+            var t = DoSomethingAsync();
+
+            //t1.Wait();
+            var result = t.Result;
+            Console.WriteLine(result);
+        }
+
+        #endregion
+
         #region Deadlock
 
         [TestMethod]
@@ -207,15 +175,12 @@ namespace AsyncAwait
             //richiedere Result significa bloccare in modo sincorono il chiamante in attesa del risultato
             //se SynchronizationContext ammette un singolo thread accade che il thread rimane bloccato in attesa
             //e non può essere richiamato quando il Task è completo 
-            
-            var result = DoSomethingAsync().Result;
-            //var result = await DoSomethingAsync();
 
-            //Task.Delay(TimeSpan.FromSeconds(2)).Wait();
-            //await Task.Delay(TimeSpan.FromSeconds(2))
+            var t = DoSomethingAsync();
+            t.Wait();
 
             //qui non ci arriva mai --> deadlock
-            Console.WriteLine("Thread " + Thread.CurrentThread.ManagedThreadId + " rusultato: " + result);
+            Console.WriteLine("Thread " + Thread.CurrentThread.ManagedThreadId + " rusultato: " + t.Result);
         }
 
         #endregion
@@ -229,37 +194,35 @@ namespace AsyncAwait
             {
                 Console.WriteLine(SynchronizationContext.Current != null ? SynchronizationContext.Current.ToString() : "null");
 
-                await DoSomethingAsync();
+                await Task.Delay(TimeSpan.FromSeconds(1));
                 Console.WriteLine(SynchronizationContext.Current != null ? SynchronizationContext.Current.ToString() : "null");
 
-                await DoSomethingAsync().ConfigureAwait(false);
+                await Task.Delay(TimeSpan.FromSeconds(1)).ConfigureAwait(false);
                 Console.WriteLine(SynchronizationContext.Current != null ? SynchronizationContext.Current.ToString() : "null");
             }); 
         }
 
-        //WPF
-        private async void DownloadButton_Click(object sender, EventArgs e)
-        {
-            // Attende in modo asincrono UI thread non è bloccato
-            await DownloadFileAsync("file.txt");
+        #endregion
 
-            // viene recuperato il contesto e quindi possiamo aggiornare direttamente la UI
-            //resultTextBox.Text = "File downloaded!";
+        #region Sequential - Concurrent
+
+        [TestMethod]
+        public async Task Sequential()
+        {
+            var sequential = Enumerable.Range(1, 4).Select(t => Task.Delay(TimeSpan.FromSeconds(1)));
+
+            foreach (var task in sequential)
+            {
+                await task;
+            }
         }
 
-        private async Task DownloadFileAsync(string fileName)
+        [TestMethod]
+        public async Task Concurrent()
         {
-            
-            // utilizziamo HttpClient o simili per fare il download.
-            //var fileContent = await DownloadFileContentsAsync(fileName).ConfigureAwait(false);
-
-            // poichè abbiamo usato ConfigureAwait(false), qui non siamo più nel contesto della UI.
-            // Invece stiamo eseguendo su un thread del thread pool
-
-            // scrive il file su disco in asincrono
-            //await WriteToDiskAsync(fileName, fileContent).ConfigureAwait(false);
-
-            // la secondo ConfigureAwait non è necessaria ma è buona pratica metterla
+            var concurrent = Enumerable.Range(1, 4).Select(t => Task.Delay(TimeSpan.FromSeconds(1)));
+            await Task.WhenAll(concurrent);
+            //await Task.WhenAny(concurrent);
         }
 
         #endregion
@@ -478,9 +441,9 @@ namespace AsyncAwait
 
         private async Task Cancellation()
         {
-            CancellationTokenSource source = new CancellationTokenSource();
+            var source = new CancellationTokenSource();
             source.CancelAfter(TimeSpan.FromSeconds(1));
-            Task task = Task.Run(() => SlowMethod(source.Token), source.Token);
+            var task = Task.Run(() => SlowMethod(source.Token), source.Token);
 
             try
             {
@@ -488,17 +451,19 @@ namespace AsyncAwait
             }
             catch (OperationCanceledException ex)
             {
-                Console.WriteLine(ex.Message);
+                Console.WriteLine(ex);
             }
-            
         }
 
         private void SlowMethod(CancellationToken cancellationToken)
         {
             for (int i = 0; i < 200000; i++)
             {
-                if (i % 1000 == 0)
+                if (i%1000 == 0)
+                {
+                    Console.WriteLine("sto per sollevare eccezione");
                     cancellationToken.ThrowIfCancellationRequested();
+                }  
             }
         }
 
@@ -565,6 +530,41 @@ namespace AsyncAwait
             tcs.Task.ContinueWith(x => timer.Dispose());
 
             return tcs.Task;
+        }
+
+        #endregion
+
+        #region Other Examples
+
+        [TestMethod]
+        public async Task TestCpuBound1()
+        {
+            //esegue il metodo in parallelo su più thread
+            Parallel.ForEach(Enumerable.Range(1, 100), CpuBoundMethod);
+
+            //var result = Enumerable.Range(1, 10000).AsParallel().Select(x => x.ToString());
+            //result.ToList().ForEach(Console.WriteLine);
+        }
+
+        [TestMethod]
+        public async Task TestIoBound()
+        {
+            Console.WriteLine("Thread " + Thread.CurrentThread.ManagedThreadId + " start IoBoundMethod");
+
+            await IoBoundMethod();
+
+            Console.WriteLine("Thread " + Thread.CurrentThread.ManagedThreadId + " end IoBoundMethod");
+        }
+
+        static async Task IoBoundMethod()
+        {
+            using (var stream = new FileStream(".\\IoBound.txt", FileMode.OpenOrCreate))
+            using (var writer = new StreamWriter(stream))
+            {
+                await writer.WriteLineAsync("Scrivo 6 in asincrono!");
+                writer.Close();
+                stream.Close();
+            }
         }
 
         #endregion
