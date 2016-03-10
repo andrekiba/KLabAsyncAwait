@@ -1,6 +1,8 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -37,7 +39,10 @@ namespace AsyncAwait
 
             //è corretto utilizzare Task.Run solo per operazioni CPU-bound poichè utilizza un thread
             await Task.Run(() => CpuBoundMethod(100));
-            await Task.Factory.StartNew(() => CpuBoundMethod(101));   
+            await Task.Factory.StartNew(() => CpuBoundMethod(101));
+
+            //var result = Enumerable.Range(1, 10000).AsParallel().Select(x => x.ToString());
+            //result.ToList().ForEach(Console.WriteLine);
         }
 
         static void CpuBoundMethod(int n)
@@ -261,30 +266,159 @@ namespace AsyncAwait
 
         #region Composition
 
+        #region WaitAll
+
+        [TestMethod]
+        public async Task TestConcurrentlyOperations()
+        {
+            await DoOperationsConcurrentlyAsync();
+        }
+
         public async Task DoOperationsConcurrentlyAsync()
         {
-            Task[] tasks = new Task[3];
-            tasks[0] = DoSomethingAsync();
-            tasks[1] = DoSomethingAsync();
-            tasks[2] = DoSomethingAsync();
+            Task<int> task1 = Task.FromResult(3);
+            Task<int> task2 = Task.FromResult(5);
+            Task<int> task3 = Task.FromResult(7);
+
+            var allTasks = Task.WhenAll(task1, task2, task3);
 
             // a questo punto tutti e 3 i task sono in running
 
             // WhenAll reswtituisce un task che diventa completo quando tutti i task sottesi sono completi
-            await Task.WhenAll(tasks);
+            // se i task ritornano tutti lo stesso tipo il risutlato sarà un array dei risultati
+            int[] results = await allTasks;
+            
+            results.ToList().ForEach(Console.WriteLine);
         }
 
-        public async Task<int> GetFirstToRespondAsync()
+        static async Task<string> DownloadAllAsync(IEnumerable<string> urls)
         {
-            // chiama due web service e vede chi risponde prima
+            var httpClient = new HttpClient();
+            // voglio fare il downlaod di tutte le url
+            var downloads = urls.Select(url => httpClient.GetStringAsync(url));
+            // qui i task non sono ancora partiti perchè la sequenza non è ancora stata valutata
+            
+            // qui partono effettivamente i task perchè viene materializzata l'IEnumerable
+            Task<string>[] downloadTasks = downloads.ToArray();
+            
+            // attende in asincrono che tutti i download siano temrinati
+            string[] htmlPages = await Task.WhenAll(downloadTasks);
+            return string.Concat(htmlPages);
+        }
+
+        #endregion
+
+        #region WaitAny
+
+        [TestMethod]
+        public async Task TestGetFirstToEndAsync()
+        {
+            await GetFirstToEndAsync();
+        }
+
+        public async Task GetFirstToEndAsync()
+        {
+            // effettua due operazioni in asincorno e vede chi finisce prima
             Task<int>[] tasks = { DoSomethingAsync(), DoSomethingAsync() };
 
             // attende il primo che risponde
             Task<int> firstTask = await Task.WhenAny(tasks);
+            var result = await firstTask;
 
-            // Return the result.
-            return await firstTask;
+            Console.WriteLine(result);
+
+            //Console.WriteLine(await await Task.WhenAny(tasks));
         }
+
+        #endregion
+
+        #region Processare i Task man mano che finsicono
+
+        [TestMethod]
+        public async Task TestUseOrderByCompletionAsync()
+        {
+            await UseOrderByCompletionAsync();
+        }
+
+        static async Task<int> DelayAndReturnAsync(int n)
+        {
+            await Task.Delay(TimeSpan.FromSeconds(1));
+            return n;
+        }
+
+        static async Task UseOrderByCompletionAsync()
+        {
+            Task<int> task1 = DelayAndReturnAsync(3);
+            Task<int> task2 = DelayAndReturnAsync(5);
+            Task<int> task3 = DelayAndReturnAsync(7);
+
+            var tasks = new[] {task1, task2, task3};
+
+            foreach (var task in tasks.OrderByCompletion())
+            {
+                Console.WriteLine(await task);
+            }
+        }
+
+        #endregion
+
+        #region Exceptions
+
+        [TestMethod]
+        public async Task TestObserveExceptions()
+        {
+            await ObserveOneExceptionAsync();
+
+            await ObserveAllExceptionAsync();
+        }
+
+        static async Task ThrowNotImplementedExceptionAsync()
+        {
+            await Task.Delay(10);
+            throw new NotImplementedException();
+        }
+        static async Task ThrowInvalidOperationExceptionAsync()
+        {
+            await Task.Delay(100);
+            throw new InvalidOperationException();
+        }
+
+        static async Task ObserveOneExceptionAsync()
+        {
+            var task1 = ThrowNotImplementedExceptionAsync();
+            var task2 = ThrowInvalidOperationExceptionAsync();
+
+            try
+            {
+                await Task.WhenAll(task1, task2);
+            }
+            catch (Exception ex)
+            {
+                // "ex" può essere NotImplementedException oppure InvalidOperationException.
+                Console.WriteLine(ex.Message);
+            }
+        }
+
+        static async Task ObserveAllExceptionAsync()
+        {
+            var task1 = ThrowNotImplementedExceptionAsync();
+            var task2 = ThrowInvalidOperationExceptionAsync();
+
+            var allTasks = Task.WhenAll(task1, task2);
+
+            try
+            {
+                await allTasks;
+            }
+            catch
+            {
+                // "ex" è un AggregateEsception
+                AggregateException allExceptions = allTasks.Exception;
+                allExceptions?.InnerExceptions.ToList().ForEach(ex => Console.WriteLine(ex.Message));
+            }
+        }
+
+        #endregion
 
         #endregion
 
