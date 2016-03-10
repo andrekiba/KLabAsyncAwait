@@ -461,10 +461,40 @@ namespace AsyncAwait
             {
                 if (i%1000 == 0)
                 {
-                    Console.WriteLine("sto per sollevare eccezione");
+                    
                     cancellationToken.ThrowIfCancellationRequested();
                 }  
             }
+        }
+
+        async Task IssueCancelRequestAsync()
+        {
+            var cts = new CancellationTokenSource();
+            var task = CancelableMethodAsync(cts.Token);
+            
+            // a questo punto il metodo ha iniziato l'esecuzione
+            // setto la cancellazione
+            cts.Cancel();
+            
+            try
+            {
+                await task;
+                //se arrivo qui il metodo ha temrinato l'esecuzione prima di ricevere il token di cancellazione
+            }
+            catch (OperationCanceledException)
+            {
+                //se arrivo qui il token ha fatto effetto e l'esecuzione cancellata
+            }
+            catch (Exception)
+            {
+                //se arrivo qui l'operazione è fallita per un altro motivo prima di essere cancellata
+                throw;
+            }
+        }
+
+        public async Task CancelableMethodAsync(CancellationToken token = default(CancellationToken))
+        {
+            await Task.Delay(TimeSpan.FromSeconds(1), token);
         }
 
         #endregion
