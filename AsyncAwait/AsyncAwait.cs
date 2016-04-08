@@ -229,7 +229,7 @@ namespace AsyncAwait
 
         #region Composition
 
-        #region WaitAll
+        #region WhenAll
 
         [TestMethod]
         public async Task TestConcurrentlyOperations()
@@ -239,19 +239,25 @@ namespace AsyncAwait
 
         public async Task DoOperationsConcurrentlyAsync()
         {
-            Task<int> task1 = Task.FromResult(3);
-            Task<int> task2 = Task.FromResult(5);
-            Task<int> task3 = Task.FromResult(7);
+            Task<int> task1 = DoSomethingAsync();
+            Task<int> task2 = DoSomethingAsync();
+            Task<int> task3 = DoSomethingAsync();
 
             var allTasks = Task.WhenAll(task1, task2, task3);
-
             // a questo punto tutti e 3 i task sono in running
-
             // WhenAll reswtituisce un task che diventa completo quando tutti i task sottesi sono completi
             // se i task ritornano tutti lo stesso tipo il risutlato sarà un array dei risultati
             int[] results = await allTasks;
-            
-            results.ToList().ForEach(Console.WriteLine);
+
+            //altrimenti è possibile recuperare i risultati dei singoli task
+            //dopo l'await su WhenAll i task saranno tutti completi quindi l'unwrap dei risultati
+            //avverrà in modo sincrono con gli await successivi sui singoli task
+            await Task.WhenAll(task1, task2, task3);
+            var res1 = await task1;
+            var res2 = await task2;
+            var res3 = await task3;
+
+            //results.ToList().ForEach(Console.WriteLine);
         }
 
         static async Task<string> DownloadAllAsync(IEnumerable<string> urls)
@@ -267,6 +273,53 @@ namespace AsyncAwait
             // attende in asincrono che tutti i download siano temrinati
             string[] htmlPages = await Task.WhenAll(downloadTasks);
             return string.Concat(htmlPages);
+        }
+
+        static async Task ThrowNotImplementedAsync()
+        {
+            await Task.Delay(10);
+            throw new NotImplementedException();      
+        }
+
+        static async Task ThrowInvalidOperationAsync()
+        {
+            await Task.Delay(10);
+            throw new InvalidOperationException();
+        }
+
+        static async Task OneExceptionAsync()
+        {
+            var t1 = ThrowNotImplementedAsync();
+            var t2 = ThrowInvalidOperationAsync();
+
+            try
+            {
+                await Task.WhenAll(t1, t2);
+            }
+            catch (Exception ex)
+            {
+                // ex può essere uno dei due tipi
+                //se è sufficiente gestire il primo errore che accade
+                throw;
+            }
+        }
+
+        static async Task AllExceptionAsync()
+        {
+            var t1 = ThrowNotImplementedAsync();
+            var t2 = ThrowInvalidOperationAsync();
+
+            var allTask = Task.WhenAll(t1, t2);
+
+            try
+            {
+                await allTask;
+            }
+            catch
+            {
+                AggregateException allEx = allTask.Exception;
+                //posso osservare tutte le eccezioni
+            }
         }
 
         #endregion
